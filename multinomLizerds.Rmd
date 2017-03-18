@@ -7,15 +7,14 @@ bibliography: "~/Dropbox/LaTeX/maintxt.bib"
 
 # Initial Setup
 
-The data file used for this analysis is stored in a sub-folder named `Data`. 
-```{r}
-base <- getwd()
-dataDIR <- paste(base, "Data", sep="/")
-plotDIR <- paste(base, "Figures", sep="/")
-```
+In the hidden R code chunk, I load (and install, if not already installed) needed packages and set up working directory.  The working directory should have a sub-folder named `Data` for raw data file(s) and a folder named `Figures` for exporting figures.  
+```{r, echo=F, message=FALSE}
+require(lattice)
+lattice::trellis.par.set(lattice::col.whitebg())
+knitr::opts_chunk$set(warning=F, prompt=TRUE, tidy=TRUE, 
+                      fig.width=7, fig.height=4, fig.path='Figs/',
+                      echo=TRUE, warning=F)
 
-Necessary packages are loaded (and installed, if not already installed):
-```{r}
 packages<-function(x, repos="http://cran.r-project.org", ...){
   x<-as.character(match.call()[[2]])
   if (!require(x,character.only=TRUE)){
@@ -23,6 +22,9 @@ packages<-function(x, repos="http://cran.r-project.org", ...){
     require(x,character.only=TRUE)
   }
 }
+base <- getwd()
+dataDIR <- paste(base, "Data", sep="/")
+plotDIR <- paste(base, "Figures", sep="/")
 
 packages(arm)
 packages(lattice)
@@ -50,7 +52,7 @@ multinom.better <- multinom(as.matrix(lizards[,PID])~Sex*HomeElev*Treatment,
  ## print summary
 summary(multinom.better, corr=FALSE)
 ```
-The fitted model uses the first category (`Buried`) as the baseline.  Statistical significance of the estimated coefficients is determined by comparing the estimated values and their respective estimation standard error.  When the standard error is less than half of the absolute value of the respective coefficients, the coefficients are statistically different from 0 at roughly a significance level of 0.05.  In a multinomial regression, an effect is "statistically significant" if at least one category-specific coefficient is different from 0.  That is, when examine the summary table, we chech the five values under each column (an effect) and their respective standard error; if at least one of the five values is different from 0, the effect represented by the column is deemed "statistially significant."  
+The fitted model uses the first category (`Buried`) as the baseline.  Statistical significance of the estimated coefficients is determined by comparing the estimated values and their respective estimation standard error.  When the standard error is less than half of the absolute value of the respective coefficients, the coefficients are statistically different from 0 at roughly a significance level of 0.05.  In a multinational regression, an effect is "statistically significant" if at least one category-specific coefficient is different from 0.  That is, when examine the summary table, we check the five values under each column (an effect) and their respective standard error; if at least one of the five values is different from 0, the effect represented by the column is deemed "statistically significant."  
 
 However, the statistical significance concept, in this case, is meaningless because the coefficients are in log-odds ratio scale.  When the baseline category is changed, the coefficients and their uncertainty will be changed, too.  For example, we can use `Sheltered` category as the baseline:
 
@@ -61,10 +63,10 @@ multinom.better2 <- multinom(as.matrix(lizards[,PID2])~Sex*HomeElev*Treatment,
  ## print summary
 summary(multinom.better2, corr=FALSE)
 ```
-The estimated coefficients and their standard errors are different from the same of the previous model.  Mathematically, these two models are identical with respect to the multinomial model parameters (the proportions of time a lizard spends in each of the six categories).  Consequently, we need to derive and present these proportions.
+The estimated coefficients and their standard errors are different from the same of the previous model.  Mathematically, these two models are identical with respect to the multinational model parameters (the proportions of time a lizard spends in each of the six categories).  Consequently, we need to derive and present these proportions.
 
 # Model Prediction
-Using the generic function `predict`, we derive the moel predicted proportions for the eight unique combinations of the three factors:
+Using the generic function `predict`, we derive the model predicted proportions for the eight unique combinations of the three factors:
 ```{r}
 pp <- predict(multinom.better, type="probs",
               newdata=as.data.frame(table(lizards[,c("Sex","HomeElev","Treatment")]))[,1:3],
@@ -85,7 +87,7 @@ dotplot(variable~value|Treatment*HomeElev, data=pp.molten,
         key=key, groups=Sex)
 ##dev.off()
 ```
-The above figure is focused on the difference in behavior between male and female lizards.  At the same time, it is also effective for comparing the two populations of lizards (high versus low habitat) because we can easily tell the differnce when two groups are lined up vertically.  We can change the layout of the figure to emphasize the difference of the treatment:
+The above figure is focused on the difference in behavior between male and female lizards.  At the same time, it is also effective for comparing the two populations of lizards (high versus low habitat) because we can easily tell the difference when two groups are lined up vertically.  We can change the layout of the figure to emphasize the difference of the treatment:
 ```{r, fig.height=5, fig.width=5.5}
 ##pdf(paste(plotDIR, "fitted2.pdf", sep="/"), height=5, width=5.5)
 key <- simpleKey(levels(pp.molten$Sex), space="right")
@@ -103,7 +105,7 @@ dotplot(variable~value|HomeElev*Sex, data=pp.molten,
 ```
 
 # Simulation for Propogating Estimation Uncertainty
-There is no analytic method for converting the estimation uncertainty with respect to the model coefficients (in the log-odds scale) to the uncertainty in the probability (proprtion) scale.  When using the function `predict` for models other than the simple linear regression models, the option `se.fit=T` is ignored.  A Monte Carlo simulation program is provided by [@Qian2016] (Chapter 9) for this purpose.  The function is reproduced here:
+There is no analytic method for converting the estimation uncertainty with respect to the model coefficients (in the log-odds scale) to the uncertainty in the probability (proportion) scale.  When using the function `predict` for models other than the simple linear regression models, the option `se.fit=T` is ignored.  A Monte Carlo simulation program is provided by [@Qian2016] (Chapter 9) for this purpose.  The function is reproduced here:
 
 ```{r}
 ## function for generating random samples of model coefficients
@@ -136,13 +138,13 @@ sim.multinom <- function(M, n.sims=NULL){
     return(beta)
 }
 ```
-The function returns a array of model coefficients. For this model, model coefficients are presented as a 5 by 8 matrix.  The simulation program return random samples of the same matric.  We used the package `rv` to process the simulation results. 
+The function returns a array of model coefficients. For this model, model coefficients are presented as a 5 by 8 matrix.  The simulation program return random samples of the same matrix.  We used the package `rv` to process the simulation results. 
 ```{r}
 sim.Better <- rvsims(sim.multinom(multinom.better, 5000))
 ## generating random samples of model coefficients and store them
 ## as an rv object
 ``` 
-The following code chunck is for calculating the predicted proportions using `rv` objects.  There are 40 ($5\times 8$) model coefficients and 48 ($6\times 8$) proportions.  Each is represented by a random variable (a vector of 5000 random samples).
+The following code chunk is for calculating the predicted proportions using `rv` objects.  There are 40 ($5\times 8$) model coefficients and 48 ($6\times 8$) proportions.  Each is represented by a random variable (a vector of 5000 random samples).
 
 ```{r}
 ## design matrix for prediction
@@ -294,7 +296,7 @@ dotplot(variable~mean|Treatment*HomeElev, data=dataPlot,
         xlim=range(dataPlot[,c(9,13)])+c(-0.025,0.025))
 #dev.off()
 ```
-We can use this figure to compare the difference between mal eand female. When the two confidence intervals do not overlap, we can safely conclude that the male and female fractions are statistically different (at $\alpha=0.05$).  However, because of the strong correlation often associated with regression model coefficients, we cannot easily decide whether the difference is statistically different from 0 when the confidence intervals do not overlap.  Using the simulation results, we can directly calculat the difference and quantify the confidence intervals of the differences.
+We can use this figure to compare the difference between male and female. When the two confidence intervals do not overlap, we can safely conclude that the male and female fractions are statistically different (at $\alpha=0.05$).  However, because of the strong correlation often associated with regression model coefficients, we cannot easily decide whether the difference is statistically different from 0 when the confidence intervals do not overlap.  Using the simulation results, we can directly calculate the difference and quantify the confidence intervals of the differences.
 ```{r, fig.width=5, fig.height=4.5}
 ### Sex difference
 dataPlotSex <- as.data.frame(cbind(pp.molten[seq(1,48,2),],
@@ -334,7 +336,7 @@ dotplot(variable~mean|HomeElev, data=dataPlotSex,
 ##dev.off()
 ```
 
-In some cases, we may not be interested in the sex differences.  We can fit the multinomial regression without the sex effect and redraw the figures accordingly.
+In some cases, we may not be interested in the sex differences.  We can fit the multinational regression without the sex effect and redraw the figures accordingly.
 
 ```{r, fig.height=5, fig.width=5.75}
 
