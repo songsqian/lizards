@@ -470,3 +470,99 @@ dotplot(variable~mean|HomeElev, data=dataPlot,
 ##dev.off()
 
 ```
+
+## Revision
+During the review, we were asked to desribe the behavior of these lizards when they were sunning.  That is, what time do they bask when they were classified as in full sun.  Using the raw time-stamp data, we added a variable for those basking lizards to group them based on the time of full sun exposure (morning, afternoon, and evening) (specific hours).
+```{r}
+dayhours <- read.csv(paste(dataDIR, "lizard light data_time bins.csv", sep="/"))
+moltern <- melt(dayhours, id=c("LizardID","Sex","HomeElev","Treatment","TimeBin"), measure="HoFullSun")
+daycast <- dcast(moltern, LizardID+Sex+HomeElev+Treatment~TimeBin)
+daycast2 <- dcast(moltern, LizardID+HomeElev+Treatment~TimeBin, sum)
+```
+
+The model 
+
+```{r}
+pid<-c(5,4,6)
+day_mln <- multinom(as.matrix(daycast2[,pid])~HomeElev*Treatment, data=daycast2)
+summary(day_mln)
+pp <- predict(day_mln, type="prob", newdata=as.data.frame(table(daycast2[,c("HomeElev","Treatment")]))[,-3])
+pp <- cbind(as.data.frame(table(daycast2[,c("HomeElev","Treatment")]))[,-3], as.data.frame(pp))
+pp.molten <- melt(pp, id.var=c('HomeElev', 'Treatment'))
+## pdf(paste(plotDIR, "fittedFullSun.pdf", sep="/"), height=5, width=5.5)
+key <- simpleKey(levels(pp.molten$Treatment), space="right")
+dotplot(variable~value|HomeElev, data=pp.molten,
+        key=key, groups=Treatment)
+## dev.off()
+```
+
+### Simulation
+```{r}
+sim.cast2 <- rvsims(sim.multinom(day_mln, 5000))
+
+## plots without Sex:
+hl <- as.numeric(pp$HomeElev=="low")
+tr <- as.numeric(pp$Treatment=="Transplant")
+
+X <- cbind(1, hl, tr, hl*tr)
+
+sim.cast2 <- rvmatrix(sim.cast2, nrow=2, ncol=4, byrow=T)
+
+Xb11 <- sum(X[1,]*sim.cast2[1,])
+Xb12 <- sum(X[1,]*sim.cast2[2,])
+
+Xb21 <- sum(X[2,]*sim.cast2[1,])
+Xb22 <- sum(X[2,]*sim.cast2[2,])
+
+Xb31 <- sum(X[3,]*sim.cast2[1,])
+Xb32 <- sum(X[3,]*sim.cast2[2,])
+
+Xb41 <- sum(X[4,]*sim.cast2[1,])
+Xb42 <- sum(X[4,]*sim.cast2[2,])
+
+pRV <- rvmatrix(0, nrow=4, ncol=3)
+
+denomsum <- 1+exp(Xb11) + exp(Xb12)
+pRV[1,1] <- 1/denomsum
+pRV[1,2] <- exp(Xb11)/denomsum
+pRV[1,3] <- exp(Xb12)/denomsum
+
+denomsum <- 1+exp(Xb21) + exp(Xb22)
+pRV[2,1] <- 1/denomsum
+pRV[2,2] <- exp(Xb21)/denomsum
+pRV[2,3] <- exp(Xb22)/denomsum
+
+denomsum <- 1+exp(Xb31) + exp(Xb32)
+pRV[3,1] <- 1/denomsum
+pRV[3,2] <- exp(Xb31)/denomsum
+pRV[3,3] <- exp(Xb32)/denomsum
+
+denomsum <- 1+exp(Xb41) + exp(Xb42)
+pRV[4,1] <- 1/denomsum
+pRV[4,2] <- exp(Xb41)/denomsum
+pRV[4,3] <- exp(Xb42)/denomsum
+
+
+dataPlot <- as.data.frame(cbind(pp.molten, summary(pRV)))
+
+##pdf(paste(plotDIR, "fittedUncasFullSun.pdf", sep="/"),
+  height=5, width=5.75)
+key <- simpleKey(levels(dataPlot$Treatment), space="right")
+dotplot(variable~mean|HomeElev, data=dataPlot,
+        key=key, groups=Treatment, col=key$points$col,
+        panel=function(x,y,subscripts, group.number, col, ...){
+          myjitter <- c(-0.1,0.1) 
+          panel.dotplot(x,as.numeric(y)+myjitter[group.number],
+                        cex=0.75, col=col)
+          panel.abline(v=0, col="gray")
+          panel.segments(dataPlot[subscripts,8],
+                        as.numeric(y)+myjitter[group.number],
+                        dataPlot[subscripts,12],
+                        as.numeric(y)+myjitter[group.number],
+                        col=col)
+
+}, 
+        xlab="fraction of time",
+        xlim=range(dataPlot[,c(8,12)])+c(-0.025,0.025))
+##dev.off()
+```
