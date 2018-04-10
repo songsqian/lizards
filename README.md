@@ -1,5 +1,4 @@
 # Analysis of lizards behavioral data
 
-This post includes the computational details acompanying the article entitled "The mechanistic basis of behavioral thermoregulation in lizards: A reciprocal transplant experiment along an elevational gradient," currently under internal review.  The lead author is Jeanine M. Refsnider. The contents will be updated when the manuscript is submitted.
+This post includes the computational details of Jeanine M Refsnider, Song S Qian, Henry M Streby, Sarah E Carter, Ian T Clifton, Adam D Siefker, Tyara K Vazquez (2018) "Reciprocally‐transplanted lizards along an elevational gradient match light‐environment use of local lizards via phenotypic plasticity," Functional Ecology, https://doi.org/10.1111/1365-2435.13071.  
  
-In response to reviewer comments, additional analysis was added to compare the behavior of lizards when they were sunning (under full sun). The same model was used to the subset of data to compare the full sun timing (morning, afternoon, or evening).
